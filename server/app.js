@@ -21,7 +21,7 @@ app.use("/api/v1/career-connect/user", userRoutes);
 
 app.use("*", (req, res, next) => {
   return res.status(404).json({
-    status: "failed",
+    status: "Failed",
     success: false,
     message: `The requested url: ${req.originalUrl} is not found`,
   });

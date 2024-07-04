@@ -4,6 +4,9 @@ import User from "../models/userModel.js";
 import { createToken } from "../utils/createToken.js";
 import { generateOTP } from "../utils/generator.js";
 import { sendEmail } from "../utils/email.js";
+import { decode } from "jsonwebtoken";
+import { promisify } from "util";
+
 export const login = catchAsyncErr(async (req, res, next) => {
   const { email, password: userProvidedPassword } = req.body;
 
@@ -18,10 +21,21 @@ export const login = catchAsyncErr(async (req, res, next) => {
       )
     );
 
-  const isValidPassword = userProvidedPassword == user.password;
+  const isValidPassword = await user.comparePassword(
+    userProvidedPassword,
+    user.password
+  );
+
+  console.log(isValidPassword);
 
   if (!isValidPassword)
-    return next(new AppError("Invalid password. Please check your password"));
+    return next(
+      new AppError(
+        "Invalid password. Please check your password",
+        400,
+        "Failed"
+      )
+    );
 
   const token = createToken(user.id);
 
@@ -122,6 +136,9 @@ export const verifyOtp = catchAsyncErr(async (req, res, next) => {
 
   if (!user) return next(new AppError("Invalid email", 404, "Failed"));
 
+  if (user && user.isVerified)
+    return next(new AppError("User already verified", 400, "Failed"));
+
   const updatedUser = await User.findByIdAndUpdate(
     user.id,
     {
@@ -136,7 +153,7 @@ export const verifyOtp = catchAsyncErr(async (req, res, next) => {
 
   if (!updatedUser)
     return next(
-      new AppError("Cannot able to register. Please try again later")
+      new AppError("Cannot able to register. Please try again later", 500)
     );
 
   const token = createToken(updatedUser.id);
@@ -148,6 +165,19 @@ export const verifyOtp = catchAsyncErr(async (req, res, next) => {
     success: true,
     message: "User created successfully!",
   });
+});
+
+export const protectTo = catchAsyncErr(async (req, res, next) => {
+  if (
+    !req.headers.authorization ||
+    !req.headers.authorization.startsWith("Bearer")
+  ) {
+    return next(new AppError("Token is not provided", 400, "Failed"));
+  }
+
+  const token = req.headers.authorization.split(" ")[1];
+
+  const { id, iat } = decode(token);
 });
 
 export const deleteUser = catchAsyncErr(async (req, res, next) => {
