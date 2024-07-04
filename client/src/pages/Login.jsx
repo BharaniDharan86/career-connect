@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
 import { useMutation } from "@tanstack/react-query";
 import Button from "../ui/Button";
@@ -17,6 +17,8 @@ const Login = () => {
     password: false,
   });
 
+  const navigate = useNavigate();
+
   const [cookie] = useCookies(["auth_token_careerconnect"]);
 
   console.log(cookie);
@@ -25,6 +27,7 @@ const Login = () => {
     mutationFn: () => loginApi(email, password),
     onSuccess: (data) => {
       console.log(data);
+      navigate("/app/home");
     },
     onError: (err) => {
       console.log(err);

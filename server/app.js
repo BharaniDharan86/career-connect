@@ -28,6 +28,7 @@ app.use("*", (req, res, next) => {
 });
 
 app.use((err, req, res, next) => {
+  console.log(err);
   return res.status(err.statusCode).json({
     status: err.status,
     success: false,

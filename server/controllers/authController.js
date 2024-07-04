@@ -2,13 +2,14 @@ import AppError from "../utils/appError.js";
 import { catchAsyncErr } from "../utils/catchAsyncErr.js";
 import User from "../models/userModel.js";
 import { createToken } from "../utils/createToken.js";
-
+import { generateOTP } from "../utils/generator.js";
+import { sendEmail } from "../utils/email.js";
 export const login = catchAsyncErr(async (req, res, next) => {
   const { email, password: userProvidedPassword } = req.body;
 
-  const findUser = await User.findOne({ email });
+  const user = await User.findOne({ email });
 
-  if (!findUser)
+  if (!user)
     return next(
       new AppError(
         "Email does not exists. Please check your email",
@@ -17,19 +18,19 @@ export const login = catchAsyncErr(async (req, res, next) => {
       )
     );
 
-  const isValidPassword = userProvidedPassword == findUser.password;
+  const isValidPassword = userProvidedPassword == user.password;
 
   if (!isValidPassword)
     return next(new AppError("Invalid password. Please check your password"));
 
-  const token = createToken(findUser.id);
+  const token = createToken(user.id);
 
   res.cookie("auth_token_careerconnect", token);
 
   return res.status(200).json({
     stauts: "Success",
     success: true,
-    message: "Logged in successfully",
+    message: "Logged in successfully!",
   });
 });
 
@@ -41,7 +42,46 @@ export const signUp = catchAsyncErr(async (req, res, next) => {
       new AppError("Please provide all the required fields", 400, "Failed")
     );
 
-  const newUser = User.create({ email, userName, password });
+  const isUserExists = await User.findOne({ email });
+
+  if (isUserExists && isUserExists.isVerified)
+    return next(new AppError("Email already exists", 400, "Failed"));
+
+  console.log(isUserExists);
+
+  if (isUserExists && isUserExists.otp !== null && !isUserExists.isVerified) {
+    const newOtp = generateOTP(6);
+
+    const updatedUserOtp = await User.findByIdAndUpdate(isUserExists.id, {
+      otp: newOtp,
+    });
+
+    if (!updatedUserOtp)
+      return next(
+        new AppError(
+          "Cannot able to create a user. Please try again later",
+          400,
+          "Failed"
+        )
+      );
+
+    await sendEmail({
+      to: email,
+      subject: "Career Connect - User Verification OTP",
+      html: htmlTemplate(userName, newOtp),
+    });
+
+    return res.status(200).json({
+      stauts: "Success",
+      success: true,
+      message:
+        "We have sent you 6 digit otp to your registered email id. Please verify it",
+    });
+  }
+
+  const otp = generateOTP(6);
+
+  const newUser = await User.create({ email, userName, password, otp });
 
   if (!newUser)
     return next(
@@ -52,14 +92,61 @@ export const signUp = catchAsyncErr(async (req, res, next) => {
       )
     );
 
-  const token = createToken(newUser.id);
+  await sendEmail({
+    to: email,
+    subject: "Career Connect - User Verification OTP",
+    html: htmlTemplate(userName, otp),
+  });
+
+  return res.status(200).json({
+    stauts: "Success",
+    success: true,
+    message:
+      "We have sent you 6 digit otp to your registered email id. Please verify it",
+  });
+});
+
+export const verifyOtp = catchAsyncErr(async (req, res, next) => {
+  const { otp, email } = req.body;
+
+  if (!otp || !email)
+    return next(
+      new AppError(
+        "Please provide all the required fields. Email and OTP",
+        400,
+        "Failed"
+      )
+    );
+
+  const user = await User.findOne({ email });
+
+  if (!user) return next(new AppError("Invalid email", 404, "Failed"));
+
+  const updatedUser = await User.findByIdAndUpdate(
+    user.id,
+    {
+      isVerified: true,
+      isActive: true,
+    },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+
+  if (!updatedUser)
+    return next(
+      new AppError("Cannot able to register. Please try again later")
+    );
+
+  const token = createToken(updatedUser.id);
 
   res.cookie("auth_token_careerconnect", token);
 
   return res.status(200).json({
     stauts: "Success",
     success: true,
-    message: "User created successfully !!",
+    message: "User created successfully!",
   });
 });
 
