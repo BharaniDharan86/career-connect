@@ -14,6 +14,6 @@ userRoutes.route("/verify").post(verifyOtp);
 userRoutes.route("/login").post(login);
 userRoutes.route("/protect").post(protectTo);
 
-userRoutes.route("/deletetest").delete(deleteUser);
+userRoutes.route("/deleteall").delete(deleteUser);
 
 export default userRoutes;

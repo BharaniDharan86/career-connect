@@ -1,20 +1,41 @@
 import AuthFormTemplate from "../ui/AuthFormTemplate";
 import Button from "../ui/Button";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import Input from "../ui/Input";
 import { useState } from "react";
 import { validateEmail } from "../utils/helper";
 import InputError from "../ui/InputError";
+import { useMutation } from "@tanstack/react-query";
+import { signUp as SignUpApi } from "../services/apiAuth";
+import toast from "react-hot-toast";
+import Spinner from "../ui/Spinner";
 
 const Signup = () => {
   const [email, setEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const [validationError, setValidationError] = useState({
     email: false,
     password: false,
     userName: false,
+  });
+
+  const { isPending: isSigningUp, mutate: signUp } = useMutation({
+    mutationFn: () => SignUpApi({ email, userName, password }),
+    onSuccess: (data) => {
+      const userEmail = data?.email;
+
+      localStorage.setItem(
+        "careerconnect_user_email",
+        JSON.stringify(userEmail)
+      );
+      navigate("/verifyemail");
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    },
   });
 
   function handleSignup(e) {
@@ -63,6 +84,8 @@ const Signup = () => {
     setValidationError((val) => {
       return { ...val, email: false, password: false };
     });
+
+    signUp();
   }
 
   return (
@@ -123,7 +146,8 @@ const Signup = () => {
         <InputError>{validationError.password}</InputError>
       )}
 
-      <Button>Sign up</Button>
+      <Button>{isSigningUp ? <Spinner /> : "Sign up"}</Button>
+
       <div className="text-center">
         <p className="text-lg">
           <span>Already have an account ? </span>{" "}

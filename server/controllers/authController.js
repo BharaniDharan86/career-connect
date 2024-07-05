@@ -6,7 +6,7 @@ import { generateOTP } from "../utils/generator.js";
 import { sendEmail } from "../utils/email.js";
 import { decode } from "jsonwebtoken";
 import { promisify } from "util";
-
+import { htmlTemplate } from "../utils/htmlTemplate.js";
 export const login = catchAsyncErr(async (req, res, next) => {
   const { email, password: userProvidedPassword } = req.body;
 
@@ -44,6 +44,7 @@ export const login = catchAsyncErr(async (req, res, next) => {
   return res.status(200).json({
     stauts: "Success",
     success: true,
+    email,
     message: "Logged in successfully!",
   });
 });
@@ -115,6 +116,7 @@ export const signUp = catchAsyncErr(async (req, res, next) => {
   return res.status(200).json({
     stauts: "Success",
     success: true,
+    email,
     message:
       "We have sent you 6 digit otp to your registered email id. Please verify it",
   });
@@ -182,6 +184,9 @@ export const protectTo = catchAsyncErr(async (req, res, next) => {
 
 export const deleteUser = catchAsyncErr(async (req, res, next) => {
   const isUserDeleted = await User.deleteMany();
+
+  if (!isUserDeleted)
+    return next(new AppError("Cannot able to delete the users", 400, "Failed"));
 
   return res.status(200).json({
     message: "All users Deleted successfully",

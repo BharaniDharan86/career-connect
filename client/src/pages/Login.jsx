@@ -8,6 +8,7 @@ import { useState } from "react";
 import { validateEmail } from "../utils/helper";
 import InputError from "../ui/InputError";
 import { loginApi } from "../services/apiAuth";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -19,18 +20,14 @@ const Login = () => {
 
   const navigate = useNavigate();
 
-  const [cookie] = useCookies(["auth_token_careerconnect"]);
-
-  console.log(cookie);
-
   const { mutate: login } = useMutation({
     mutationFn: () => loginApi(email, password),
     onSuccess: (data) => {
-      console.log(data);
+      toast.success(data.message);
       navigate("/app/home");
     },
     onError: (err) => {
-      console.log(err);
+      toast.error(err.message);
     },
   });
 

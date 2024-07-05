@@ -19,3 +19,37 @@ export async function loginApi(email, password) {
 
   return data;
 }
+
+export async function signUp(credentials) {
+  const response = await fetch(`${BASE_URL}/user/signup`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(credentials),
+    credentials: "include",
+  });
+
+  const data = await response.json();
+
+  if (!data.success) throw new Error(data.message);
+
+  return data;
+}
+
+export async function verifyEmail(credentials) {
+  const response = await fetch(`${BASE_URL}/user/verify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(credentials),
+    credentials: "include",
+  });
+
+  const data = await response.json();
+
+  if (!data.success) throw new Error(data.message);
+
+  return data;
+}

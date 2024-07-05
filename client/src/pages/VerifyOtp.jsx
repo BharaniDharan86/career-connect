@@ -1,11 +1,28 @@
-import React from "react";
 import { useState } from "react";
 import Button from "../ui/Button";
 import InputError from "../ui/InputError";
+import { useMutation } from "@tanstack/react-query";
+import Spinner from "../ui/Spinner";
+import { verifyEmail as verifyEmailApi } from "../services/apiAuth";
+import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 const VerifyOtp = () => {
   const [otp, setOtp] = useState("");
   const [validationError, setValidationError] = useState({ otp: false });
+  const navigate = useNavigate();
+
+  const { mutate: verifyOtp, isPending: isOtpVerifyPending } = useMutation({
+    mutationFn: (data) => verifyEmailApi(data),
+    onSuccess: (data) => {
+      toast.success(data?.message || "Success");
+      localStorage.removeItem("careerconnect_user_email");
+      navigate("/app/home");
+    },
+    onError: (err) => {
+      toast.error(err?.message || "Something went very wrong");
+    },
+  });
 
   function handleOtpSubmission(e) {
     e.preventDefault();
@@ -18,7 +35,11 @@ const VerifyOtp = () => {
       return;
     }
 
-    console.log(otp);
+    const userEmail = JSON.parse(
+      localStorage.getItem("careerconnect_user_email")
+    );
+
+    verifyOtp({ email: userEmail, otp });
   }
   return (
     <div className="flex justify-center items-center h-[70vh]">
@@ -40,7 +61,9 @@ const VerifyOtp = () => {
             <InputError>{validationError.otp}</InputError>
           )}
           <div className="w-[20%]">
-            <Button type="submit">Submit</Button>
+            <Button type="submit">
+              {isOtpVerifyPending ? <Spinner /> : "Submit"}
+            </Button>
           </div>
         </div>
       </form>
